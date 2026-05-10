@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}回测结果 — A股量化{% endblock %}
+{% block content %}
+<h5 class="mb-3">
+    <a href="{{ url_for('backtest.form') }}" class="text-decoration-none text-muted"><i class="bi bi-arrow-left"></i></a>
+    回测结果
+</h5>
+
+<!-- 加载中 -->
+<div id="loading-panel" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-3 text-muted">回测运行中，请稍候...</p>
+    <p class="text-muted small">进度: <span id="progress-text">0%</span></p>
+</div>
+
+<!-- 结果面板 -->
+<div id="result-panel" style="display:none">
+    <!-- 指标卡片 -->
+    <div class="row g-3 mb-4" id="metrics-row"></div>
+
+    <!-- 净值曲线 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-title">净值曲线</h6>
+            <div id="equity-chart" style="width:100%; height:400px;"></div>
+        </div>
+    </div>
+
+    <!-- 交易明细 -->
+    <div class="card">
+        <div class="card-body">
+            <h6 class="card-title">交易明细</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover" id="trades-table">
+                    <thead class="table-light"><tr><th>日期</th><th>操作</th><th>价格</th><th>数量</th><th>原因</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 错误面板 -->
+<div id="error-panel" style="display:none" class="alert alert-danger"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+var taskId = "{{ task_id }}";
+
+function pollStatus() {
+    apiGet('/api/backtest/status/' + taskId, function(data) {
+        if (data.status === 'done') {
+            document.getElementById('loading-panel').style.display = 'none';
+            document.getElementById('result-panel').style.display = 'block';
+            loadResult();
+        } else if (data.status === 'error') {
+            document.getElementById('loading-panel').style.display = 'none';
+            document.getElementById('error-panel').style.display = 'block';
+            document.getElementById('error-panel').textContent = '回测失败: ' + (data.error || '未知错误');
+        } else {
+            document.getElementById('progress-text').textContent = data.progress + '%';
+            setTimeout(pollStatus, 1000);
+        }
+    });
+}
+
+function loadResult() {
+    apiGet('/api/backtest/result/' + taskId, function(data) {
+        if (data.error) return;
+
+        // 指标卡片
+        var m = data.metrics;
+        var metricsHtml = [
+            makeMetricCard('总收益率', (m.total_return * 100).toFixed(2) + '%', m.total_return >= 0 ? 'positive' : 'negative'),
+            makeMetricCard('年化收益率', (m.annual_return * 100).toFixed(2) + '%', m.annual_return >= 0 ? 'positive' : 'negative'),
+            makeMetricCard('最大回撤', (m.max_drawdown * 100).toFixed(2) + '%', 'negative'),
+            makeMetricCard('夏普比率', m.sharpe_ratio.toFixed(2), m.sharpe_ratio >= 1 ? 'positive' : ''),
+            makeMetricCard('胜率', (m.win_rate * 100).toFixed(1) + '%', m.win_rate >= 0.5 ? 'positive' : 'negative'),
+            makeMetricCard('交易次数', m.trade_count, ''),
+            makeMetricCard('最终市值', (m.final_value / 10000).toFixed(0) + '万', m.total_return >= 0 ? 'positive' : 'negative'),
+            makeMetricCard('Alpha', (m.alpha * 100).toFixed(2) + '%', m.alpha >= 0 ? 'positive' : 'negative'),
+        ].join('');
+        document.getElementById('metrics-row').innerHTML = metricsHtml;
+
+        // ECharts
+        if (data.equity) {
+            renderEquityChart('equity-chart', data.equity);
+        }
+
+        // 交易表格
+        var tbody = document.querySelector('#trades-table tbody');
+        tbody.innerHTML = '';
+        (data.trades || []).forEach(function(t) {
+            var cls = t.action === '买入' ? 'text-danger' : 'text-success';
+            tbody.innerHTML += '<tr><td>' + t.date + '</td><td class="' + cls + '">' + t.action + '</td><td>' + t.price + '</td><td>' + t.shares + '</td><td>' + t.reason + '</td></tr>';
+        });
+    });
+}
+
+function makeMetricCard(label, value, cls) {
+    return '<div class="col-6 col-md-3"><div class="card metric-card"><div class="metric-value ' + cls + '">' + value + '</div><div class="metric-label">' + label + '</div></div></div>';
+}
+
+pollStatus();
+</script>
+{% endblock %}

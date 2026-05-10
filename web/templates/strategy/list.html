@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}策略管理 — A股量化{% endblock %}
+{% block content %}
+<h5 class="mb-3"><i class="bi bi-diagram-3"></i> 策略管理</h5>
+
+<div class="row g-3">
+{% for s in strategies %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">{{ s.display_name }}</h6>
+                <p class="card-text text-muted small">{{ s.description }}</p>
+                <p class="mb-2"><span class="badge bg-info">{{ s.param_count }} 个参数</span> <span class="badge bg-secondary">{{ s.key }}</span></p>
+                <a href="{{ url_for('strategy.detail', name=s.key) }}" class="btn btn-outline-primary btn-sm">查看详情</a>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

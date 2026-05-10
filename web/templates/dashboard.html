@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 — A股量化{% endblock %}
+{% block content %}
+<h5 class="mb-3"><i class="bi bi-speedometer2"></i> 仪表盘</h5>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-broadcast"></i> 实盘状态</h6>
+                {% if live_status.running %}
+                <span class="badge bg-success">运行中</span>
+                <p class="mt-2 mb-1">策略: {{ live_status.strategy }}</p>
+                <p class="mb-1">监控: {{ live_status.symbols | join(', ') }}</p>
+                <p class="mb-0">总资产: ¥{{ "%.0f" | format(live_status.total_assets) }}</p>
+                {% else %}
+                <span class="badge bg-secondary">未启动</span>
+                <p class="mt-2 mb-0"><a href="{{ url_for('live.control') }}" class="text-decoration-none">去启动 →</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-clock-history"></i> 最近回测</h6>
+                {% if last_bt and last_bt.metrics %}
+                <p class="mb-1">总收益率: <span class="{{ 'positive' if last_bt.metrics.total_return > 0 else 'negative' }}">{{ "%.2f%%" | format(last_bt.metrics.total_return * 100) }}</span></p>
+                <p class="mb-1">夏普比率: {{ "%.2f" | format(last_bt.metrics.sharpe_ratio) }}</p>
+                <p class="mb-1">最大回撤: <span class="negative">{{ "%.2f%%" | format(last_bt.metrics.max_drawdown * 100) }}</span></p>
+                <p class="mb-0">交易次数: {{ last_bt.metrics.trade_count }}</p>
+                {% else %}
+                <p class="text-muted mb-0">暂无回测记录<br><a href="{{ url_for('backtest.form') }}" class="text-decoration-none">去回测 →</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-lightning"></i> 快速操作</h6>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('backtest.form') }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-play-circle"></i> 运行回测</a>
+                    <a href="{{ url_for('live.control') }}" class="btn btn-outline-success btn-sm"><i class="bi bi-broadcast"></i> 启动实盘</a>
+                    <a href="{{ url_for('data_mgmt.cache') }}" class="btn btn-outline-info btn-sm"><i class="bi bi-download"></i> 下载数据</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent_trades %}
+<h6 class="mb-2"><i class="bi bi-list-check"></i> 最近交易</h6>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light"><tr><th>时间</th><th>代码</th><th>操作</th><th>价格</th><th>数量</th></tr></thead>
+            <tbody>
+            {% for t in recent_trades %}
+            <tr>
+                <td>{{ t.time }}</td>
+                <td>{{ t.symbol }}</td>
+                <td>
+                    {% if t.action in ('BUY', 'buy') %}<span class="badge bg-danger">买入</span>
+                    {% elif t.action in ('SELL', 'sell') %}<span class="badge bg-success">卖出</span>
+                    {% elif t.action == 'STOP_LOSS' %}<span class="badge bg-warning text-dark">止损</span>
+                    {% else %}<span class="badge bg-secondary">{{ t.action }}</span>{% endif %}
+                </td>
+                <td>{{ "%.2f" | format(t.price | float) }}</td>
+                <td>{{ t.quantity }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

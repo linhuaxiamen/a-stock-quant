@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}实盘状态 — A股量化{% endblock %}
+{% block content %}
+<h5 class="mb-3">
+    <a href="{{ url_for('live.control') }}" class="text-decoration-none text-muted"><i class="bi bi-arrow-left"></i></a>
+    实盘详细状态
+</h5>
+
+<div class="row g-3 mb-4" id="status-cards">
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="metric-label">运行状态</div>
+            <div class="metric-value" id="s-status"><span class="badge bg-secondary">加载中</span></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="metric-label">总资产</div>
+            <div class="metric-value" id="s-assets">--</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="metric-label">可用现金</div>
+            <div class="metric-value" id="s-cash">--</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="metric-label">当日盈亏</div>
+            <div class="metric-value" id="s-pnl">--</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-title">持仓明细</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light"><tr><th>代码</th><th>名称</th><th>持仓</th><th>可卖</th><th>成本价</th><th>现价</th><th>盈亏</th><th>盈亏%</th></tr></thead>
+                <tbody id="s-positions"><tr><td colspan="8" class="text-center text-muted">加载中...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary btn-sm" onclick="location.href='{{ url_for('live.control') }}'"><i class="bi bi-arrow-left"></i> 返回控制</button>
+    <button class="btn btn-outline-primary btn-sm" onclick="refreshStatus()"><i class="bi bi-arrow-clockwise"></i> 刷新</button>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function refreshStatus() {
+    apiGet('/api/live/status', function(data) {
+        if (!data.running) {
+            document.getElementById('s-status').innerHTML = '<span class="badge bg-secondary">未运行</span>';
+            document.getElementById('s-assets').textContent = '--';
+            document.getElementById('s-cash').textContent = '--';
+            document.getElementById('s-pnl').textContent = '--';
+            document.getElementById('s-positions').innerHTML = '<tr><td colspan="8" class="text-center text-muted">实盘未运行</td></tr>';
+            return;
+        }
+        document.getElementById('s-status').innerHTML = '<span class="badge bg-success">运行中</span> ' + data.strategy;
+        document.getElementById('s-assets').textContent = '¥' + data.account.total_assets.toLocaleString();
+        document.getElementById('s-cash').textContent = '¥' + data.account.cash.toLocaleString();
+        var pnl = data.account.today_pnl;
+        document.getElementById('s-pnl').textContent = '¥' + pnl.toLocaleString();
+        document.getElementById('s-pnl').className = 'metric-value ' + (pnl >= 0 ? 'positive' : 'negative');
+
+        var tbody = document.getElementById('s-positions');
+        if (data.positions && data.positions.length > 0) {
+            tbody.innerHTML = '';
+            data.positions.forEach(function(p) {
+                var cls = p.pnl_pct >= 0 ? 'text-danger' : 'text-success';
+                tbody.innerHTML += '<tr><td>' + p.symbol + '</td><td>' + (p.name || '') + '</td><td>' + p.quantity + '</td><td>' + p.available + '</td><td>' + p.cost_price + '</td><td>' + p.current_price + '</td><td class="' + cls + '">' + p.pnl.toFixed(0) + '</td><td class="' + cls + '">' + (p.pnl_pct * 100).toFixed(2) + '%</td></tr>';
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">暂无持仓</td></tr>';
+        }
+    });
+}
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
+{% endblock %}

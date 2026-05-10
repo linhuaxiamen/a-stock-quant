@@ -244,8 +244,14 @@ class LiveTrader:
         return "\n".join(lines)
 
     def _fetch_prices(self) -> dict:
-        """批量获取实时价格（新浪接口）"""
-        prices = {}
+        """批量获取实时价格（优先东方财富，降级新浪）"""
+        from data.realtime import fetch_prices_em
+        prices = fetch_prices_em(self.symbols)
+        if prices:
+            return prices
+
+        # 降级到新浪
+        print("  ⚠️ 东方财富行情失败，降级新浪")
         try:
             import requests
             codes = []
@@ -267,5 +273,5 @@ class LiveTrader:
                     except:
                         pass
         except Exception as e:
-            print(f"  ⚠️ 行情获取失败: {e}")
+            print(f"  ⚠️ 新浪行情也失败: {e}")
         return prices

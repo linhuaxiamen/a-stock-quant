@@ -16,3 +16,13 @@ BACKTEST = {
 
 # 数据缓存目录
 CACHE_DIR = "data/cache"
+
+# Web管理后台配置
+WEB = {
+    "admin_username": "admin",
+    "admin_password_hash": "pbkdf2:sha256:1000000$q6bAhiiCHjxUugJc$60375ee30781c2748483ef7815cbe869ecccc75f6b2cfb7a77f15ed878804e18",  # 默认密码: admin
+    "secret_key": "a-stock-quant-change-me-in-production",
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": False,
+}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ reg.display_name }} — 策略详情{% endblock %}
+{% block content %}
+<h5 class="mb-3">
+    <a href="{{ url_for('strategy.list') }}" class="text-decoration-none text-muted"><i class="bi bi-arrow-left"></i></a>
+    {{ reg.display_name }}
+</h5>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">策略说明</h6>
+                <p class="text-muted">{{ reg.description }}</p>
+                <p><span class="badge bg-secondary">标识: {{ name }}</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">参数配置</h6>
+                <form method="POST">
+                    {% for p in reg.params %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ p.label }}</label>
+                        <input type="number" step="{{ '1' if p.type == 'int' else '0.1' }}"
+                               name="{{ p.key }}" value="{{ p.default }}"
+                               class="form-control form-control-sm" style="max-width:200px">
+                        <small class="text-muted">类型: {{ p.type }}，默认: {{ p.default }}</small>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> 保存参数</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

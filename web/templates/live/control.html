@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}实盘交易 — A股量化{% endblock %}
+{% block content %}
+<h5 class="mb-3"><i class="bi bi-broadcast"></i> 实盘交易</h5>
+
+{% if live_running %}
+<!-- 运行中 -->
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <span class="badge bg-success mb-2" style="font-size:1rem">运行中</span>
+                <p class="mb-0" id="live-strategy">加载中...</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="metric-label">总资产</div>
+                <div class="metric-value" id="live-assets">--</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="metric-label">持仓市值</div>
+                <div class="metric-value" id="live-market-value">--</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-title">持仓明细</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light"><tr><th>代码</th><th>数量</th><th>成本</th><th>现价</th><th>盈亏</th><th>盈亏%</th></tr></thead>
+                <tbody id="positions-body"><tr><td colspan="6" class="text-center text-muted">加载中...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2">
+    <button class="btn btn-outline-primary btn-sm" onclick="location.href='{{ url_for('live.status') }}'"><i class="bi bi-eye"></i> 详细状态</button>
+    <button class="btn btn-danger btn-sm" id="btn-stop" onclick="stopLive()"><i class="bi bi-stop-fill"></i> 停止实盘</button>
+</div>
+
+{% else %}
+<!-- 未运行 — 启动表单 -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title mb-3">启动实盘交易</h6>
+                <form id="live-form">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">监控代码 (逗号分隔)</label>
+                            <input type="text" id="lf-symbols" value="000001" class="form-control" placeholder="000001,600519">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">策略</label>
+                            <select id="lf-strategy" class="form-select">
+                                {% for key, name in strategies %}
+                                <option value="{{ key }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">券商模式</label>
+                            <select id="lf-broker" class="form-select" onchange="toggleQmtFields()">
+                                <option value="paper">模拟盘</option>
+                                <option value="qmt">QMT 实盘</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">初始资金 (模拟盘)</label>
+                            <input type="number" id="lf-cash" value="1000000" step="100000" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">轮询间隔 (秒)</label>
+                            <input type="number" id="lf-interval" value="60" class="form-control">
+                        </div>
+
+                        <!-- QMT 字段 -->
+                        <div class="col-md-6" id="qmt-fields" style="display:none">
+                            <label class="form-label">QMT 资金账号</label>
+                            <input type="text" id="lf-account" class="form-control" placeholder="QMT 资金账号">
+                        </div>
+                        <div class="col-md-6" id="qmt-path-field" style="display:none">
+                            <label class="form-label">QMT 安装路径</label>
+                            <input type="text" id="lf-qmt-path" class="form-control" placeholder="C:/国金QMT/userdata_mini">
+                        </div>
+
+                        <!-- 风控参数 -->
+                        <div class="col-12"><hr class="my-1"><h6 class="text-muted">风控参数</h6></div>
+                        <div class="col-md-3">
+                            <label class="form-label">单股最大仓位</label>
+                            <input type="number" id="lf-max-pos" value="0.3" step="0.05" min="0.1" max="1" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">止损比例</label>
+                            <input type="number" id="lf-stop-loss" value="0.07" step="0.01" min="0.01" max="0.5" class="form-control">
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <button type="button" class="btn btn-success" onclick="startLive()"><i class="bi bi-play-fill"></i> 启动实盘</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleQmtFields() {
+    var isQmt = document.getElementById('lf-broker').value === 'qmt';
+    document.getElementById('qmt-fields').style.display = isQmt ? 'block' : 'none';
+    document.getElementById('qmt-path-field').style.display = isQmt ? 'block' : 'none';
+}
+
+function startLive() {
+    var data = {
+        symbols: document.getElementById('lf-symbols').value,
+        strategy: document.getElementById('lf-strategy').value,
+        broker: document.getElementById('lf-broker').value,
+        initial_cash: parseFloat(document.getElementById('lf-cash').value),
+        poll_interval: parseInt(document.getElementById('lf-interval').value),
+        max_position_pct: parseFloat(document.getElementById('lf-max-pos').value),
+        stop_loss_pct: parseFloat(document.getElementById('lf-stop-loss').value),
+    };
+    if (data.broker === 'qmt') {
+        data.account_id = document.getElementById('lf-account').value;
+        data.qmt_path = document.getElementById('lf-qmt-path').value;
+    }
+    fetch('/api/live/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data),
+    }).then(r => r.json()).then(d => {
+        if (d.ok) location.reload();
+        else alert('启动失败: ' + (d.error || '未知错误'));
+    });
+}
+
+function stopLive() {
+    if (!confirm('确定停止实盘交易？')) return;
+    fetch('/api/live/stop', {method: 'POST'}).then(r => r.json()).then(d => {
+        if (d.ok) location.reload();
+        else alert('停止失败');
+    });
+}
+
+{% if live_running %}
+// 运行中时自动刷新状态
+function refreshStatus() {
+    apiGet('/api/live/status', function(data) {
+        if (!data.running) { location.reload(); return; }
+        document.getElementById('live-strategy').textContent = '策略: ' + data.strategy;
+        document.getElementById('live-assets').textContent = '¥' + (data.account.total_assets / 10000).toFixed(1) + '万';
+        document.getElementById('live-market-value').textContent = '¥' + (data.account.market_value / 10000).toFixed(1) + '万';
+
+        var tbody = document.getElementById('positions-body');
+        if (data.positions && data.positions.length > 0) {
+            tbody.innerHTML = '';
+            data.positions.forEach(function(p) {
+                var cls = p.pnl_pct >= 0 ? 'text-danger' : 'text-success';
+                tbody.innerHTML += '<tr><td>' + p.symbol + '</td><td>' + p.quantity + '</td><td>' + p.cost_price + '</td><td>' + p.current_price + '</td><td class="' + cls + '">' + p.pnl.toFixed(0) + '</td><td class="' + cls + '">' + (p.pnl_pct * 100).toFixed(2) + '%</td></tr>';
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无持仓</td></tr>';
+        }
+    });
+}
+refreshStatus();
+setInterval(refreshStatus, 5000);
+{% endif %}
+</script>
+{% endblock %}

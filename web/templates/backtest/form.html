@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}运行回测 — A股量化{% endblock %}
+{% block extra_head %}
+<style>
+    .param-section { display: none; }
+    .param-section.active { display: block; }
+</style>
+{% endblock %}
+{% block content %}
+<h5 class="mb-3"><i class="bi bi-clock-history"></i> 运行回测</h5>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('backtest.run') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">股票代码</label>
+                            <input type="text" name="stock" value="000001" class="form-control" placeholder="如 000001, 600519">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">策略</label>
+                            <select name="strategy" id="strategy-select" class="form-select">
+                                {% for key, name in strategies %}
+                                <option value="{{ key }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">开始日期</label>
+                            <input type="date" name="start" value="2024-01-01" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">结束日期</label>
+                            <input type="date" name="end" value="2024-12-31" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">初始资金</label>
+                            <input type="number" name="initial_cash" value="1000000" step="100000" class="form-control">
+                        </div>
+
+                        <!-- MA 交叉参数 -->
+                        <div class="col-12 param-section active" id="params-ma_cross">
+                            <hr>
+                            <h6 class="text-muted">双均线交叉参数</h6>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">短均线周期</label>
+                                    <input type="number" name="param_short_window" value="5" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">长均线周期</label>
+                                    <input type="number" name="param_long_window" value="20" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RSI 参数 -->
+                        <div class="col-12 param-section" id="params-rsi_reversal">
+                            <hr>
+                            <h6 class="text-muted">RSI 反转参数</h6>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">RSI 周期</label>
+                                    <input type="number" name="param_period" value="14" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">超卖阈值</label>
+                                    <input type="number" name="param_oversold" value="30" step="1" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">超买阈值</label>
+                                    <input type="number" name="param_overbought" value="70" step="1" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-play-fill"></i> 开始回测</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+document.getElementById('strategy-select').addEventListener('change', function() {
+    document.querySelectorAll('.param-section').forEach(el => el.classList.remove('active'));
+    var target = document.getElementById('params-' + this.value);
+    if (target) target.classList.add('active');
+});
+</script>
+{% endblock %}

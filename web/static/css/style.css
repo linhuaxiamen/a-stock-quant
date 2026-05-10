@@ -1,0 +1,62 @@
+/* A股量化 Web 样式 */
+
+body {
+    background-color: #f5f6fa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.metric-card {
+    text-align: center;
+    padding: 1rem 0.5rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+/* A股配色: 红涨绿跌 */
+.positive { color: #dc3545; }
+.negative { color: #28a745; }
+
+/* ECharts 容器 */
+#equity-chart, #volume-chart {
+    width: 100%;
+    height: 400px;
+}
+
+/* 卡片微调 */
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.card-title {
+    font-weight: 600;
+    color: #333;
+}
+
+/* 导航高亮 */
+.navbar .nav-link:hover {
+    color: #fff !important;
+    opacity: 0.9;
+}
+
+/* 表格紧凑 */
+.table-sm th, .table-sm td {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* 分页紧凑 */
+.pagination-sm .page-link {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
